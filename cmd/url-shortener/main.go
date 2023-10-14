@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"golang.org/x/exp/slog"
@@ -28,7 +29,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = storage
+	err = storage.Save("https://google.com", "google")
+	if err != nil {
+		log.Error("failed to save url", slogpkg.Err(err))
+		os.Exit(1)
+	}
+
+	url, err := storage.GetUrlByAlias("google")
+	fmt.Println(url)
+	if err != nil {
+		log.Error("failed to get url by alias", slogpkg.Err(err))
+		os.Exit(1)
+	}
 }
 
 func setupLogger(env string) *slog.Logger {
