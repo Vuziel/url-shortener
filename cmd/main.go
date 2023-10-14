@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"url-shortener/internal/config"
+)
 
 func main() {
-	fmt.Println("Hello world")
+	cfg := config.MustLoad()
 }
