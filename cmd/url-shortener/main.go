@@ -1,11 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"net/http"
 	"os"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/exp/slog"
 	"url-shortener/internal/config"
+	"url-shortener/internal/http-server/handlers/url/save"
 	slogpkg "url-shortener/internal/packages/logger/slog"
 	"url-shortener/internal/storage/sqlite"
 )
@@ -29,17 +32,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = storage.Save("https://google.com", "google")
-	if err != nil {
-		log.Error("failed to save url", slogpkg.Err(err))
-		os.Exit(1)
-	}
+	router := chi.NewRouter()
 
-	url, err := storage.GetUrlByAlias("google")
-	fmt.Println(url)
-	if err != nil {
-		log.Error("failed to get url by alias", slogpkg.Err(err))
-		os.Exit(1)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+
+	router.Post("/url", save.New(log, storage))
+
+	log.Info("starting server", slog.String("address", cfg.Address))
+
+	srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
 }
 
